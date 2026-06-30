@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E1419">
+<title>GigVault</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LICENSE GATE -->
+<div id="screen-license" class="screen active">
+  <div class="auth-card">
+    <img src="icons/icon-192.png" class="logo-sm" alt="GigVault"/>
+    <h1>Enter your code</h1>
+    <p class="muted">Check your email or texts for the 5-digit code you got after purchase.</p>
+    <input id="license-input" class="code-input" maxlength="5" inputmode="numeric" placeholder="00000" autocomplete="off">
+    <button id="license-submit" class="btn-primary full">Unlock GigVault</button>
+    <p id="license-error" class="error-text"></p>
+    <p class="muted small">Don't have a code? <a href="https://whop.com" target="_blank">Buy GigVault on Whop</a></p>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="screen-onboard" class="screen">
+  <div class="onboard-wrap">
+    <div class="progress"><div id="ob-progress-fill" class="progress-fill"></div></div>
+
+    <div id="ob-step-1" class="ob-step active">
+      <div class="eyebrow">Step 1 of 4</div>
+      <h2>What should we call you?</h2>
+      <input id="ob-name" class="text-input" placeholder="Your first name" autocomplete="off">
+      <button class="btn-primary full" onclick="GV.nextStep(1)">Continue</button>
+    </div>
+
+    <div id="ob-step-2" class="ob-step">
+      <div class="eyebrow">Step 2 of 4</div>
+      <h2>Which platforms do you work?</h2>
+      <p class="muted">Select all that apply.</p>
+      <div id="platform-grid" class="chip-grid"></div>
+      <button class="btn-primary full" onclick="GV.nextStep(2)">Continue</button>
+    </div>
+
+    <div id="ob-step-3" class="ob-step">
+      <div class="eyebrow">Step 3 of 4</div>
+      <h2>What's your tax set-aside rate?</h2>
+      <p class="muted">We'll hold this percentage back from every entry you log.</p>
+      <div class="slider-row">
+        <input id="ob-tax" type="range" min="0" max="40" value="20" oninput="GV.updateTaxLabel()">
+        <span id="ob-tax-label" class="slider-val">20%</span>
+      </div>
+      <button class="btn-primary full" onclick="GV.nextStep(3)">Continue</button>
+    </div>
+
+    <div id="ob-step-4" class="ob-step">
+      <div class="eyebrow">Step 4 of 4</div>
+      <h2>Set your weekly budget caps</h2>
+      <label class="field-label">Gas / vehicle</label>
+      <input id="ob-cap-gas" class="text-input" type="number" placeholder="100">
+      <label class="field-label">Food / personal</label>
+      <input id="ob-cap-food" class="text-input" type="number" placeholder="80">
+      <label class="field-label">Other</label>
+      <input id="ob-cap-other" class="text-input" type="number" placeholder="50">
+      <button class="btn-primary full" onclick="GV.finishOnboarding()">Enter GigVault</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="screen-app" class="screen">
+  <header class="app-header">
+    <div class="brand-sm"><img src="icons/icon-192.png"/> GigVault</div>
+    <button class="icon-btn" onclick="GV.goto('settings')">⚙</button>
+  </header>
+
+  <main id="view-dashboard" class="view active">
+    <div class="hello">Hey <span id="dash-name">there</span> 👋</div>
+
+    <div class="stat-row">
+      <div class="stat-card lime">
+        <div class="stat-label">Take-home this week</div>
+        <div class="stat-value" id="stat-takehome">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Set aside for taxes</div>
+        <div class="stat-value" id="stat-tax">$0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Income by platform</div>
+      <canvas id="chart-platform" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Last 7 days</div>
+      <canvas id="chart-week" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Budget caps</div>
+      <div id="budget-bars"></div>
+    </div>
+
+    <button class="fab" onclick="GV.goto('log')">+ Log entry</button>
+  </main>
+
+  <main id="view-log" class="view">
+    <div class="view-header"><button class="back-btn" onclick="GV.goto('dashboard')">←</button><h2>Log entry</h2></div>
+    <div class="toggle-row">
+      <button id="toggle-income" class="toggle active" onclick="GV.setEntryType('income')">Income</button>
+      <button id="toggle-expense" class="toggle" onclick="GV.setEntryType('expense')">Expense</button>
+    </div>
+    <label class="field-label">Amount</label>
+    <input id="entry-amount" class="text-input" type="number" placeholder="0.00">
+    <label class="field-label" id="entry-platform-label">Platform</label>
+    <select id="entry-platform" class="text-input"></select>
+    <label class="field-label">Note (optional)</label>
+    <input id="entry-note" class="text-input" placeholder="e.g. Friday night shift">
+    <button class="btn-primary full" onclick="GV.saveEntry()">Save entry</button>
+  </main>
+
+  <main id="view-expenses" class="view">
+    <div class="view-header"><button class="back-btn" onclick="GV.goto('dashboard')">←</button><h2>History</h2></div>
+    <div id="entry-list" class="entry-list"></div>
+  </main>
+
+  <main id="view-tax" class="view">
+    <div class="view-header"><button class="back-btn" onclick="GV.goto('dashboard')">←</button><h2>Tax calculator</h2></div>
+    <div class="card">
+      <div class="card-title">Total set aside</div>
+      <div class="stat-value" id="tax-total">$0</div>
+      <p class="muted">Based on your <span id="tax-rate-display">20</span>% rate across all logged income.</p>
+    </div>
+    <label class="field-label">Adjust your rate</label>
+    <div class="slider-row">
+      <input id="tax-slider" type="range" min="0" max="40" oninput="GV.updateTaxRate()">
+      <span id="tax-slider-val" class="slider-val">20%</span>
+    </div>
+  </main>
+
+  <main id="view-settings" class="view">
+    <div class="view-header"><button class="back-btn" onclick="GV.goto('dashboard')">←</button><h2>Settings</h2></div>
+    <label class="field-label">Your name</label>
+    <input id="set-name" class="text-input">
+    <label class="field-label">Platforms</label>
+    <div id="set-platform-grid" class="chip-grid"></div>
+    <label class="field-label">Weekly caps</label>
+    <input id="set-cap-gas" class="text-input" type="number" placeholder="Gas / vehicle">
+    <input id="set-cap-food" class="text-input" type="number" placeholder="Food / personal" style="margin-top:8px">
+    <input id="set-cap-other" class="text-input" type="number" placeholder="Other" style="margin-top:8px">
+    <button class="btn-primary full" onclick="GV.saveSettings()">Save changes</button>
+    <button class="btn-secondary full" onclick="GV.resetApp()">Reset all data</button>
+  </main>
+
+  <nav class="tab-bar">
+    <button class="tab active" data-view="dashboard" onclick="GV.goto('dashboard')">Dashboard</button>
+    <button class="tab" data-view="expenses" onclick="GV.goto('expenses')">History</button>
+    <button class="tab" data-view="log" onclick="GV.goto('log')">+ Log</button>
+    <button class="tab" data-view="tax" onclick="GV.goto('tax')">Taxes</button>
+  </nav>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
